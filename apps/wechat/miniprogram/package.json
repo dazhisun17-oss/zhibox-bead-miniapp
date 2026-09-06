@@ -1,0 +1,13 @@
+{
+  "name": "samvibe-miniprogram",
+  "version": "1.3.22",
+  "private": true,
+  "scripts": {
+    "test:showcase": "node ../../../scripts/test-bead-engine.js && node ../../../scripts/test-chart-recognizer.js && node ../../../scripts/test-image-path-compat.js && node ../../../scripts/test-editor-gesture-contract.js"
+  },
+  "dependencies": {
+    "@pdf-lib/upng": "^1.0.1",
+    "pdf-lib": "^1.17.1",
+    "qrcode-generator": "^1.4.4"
+  }
+}
