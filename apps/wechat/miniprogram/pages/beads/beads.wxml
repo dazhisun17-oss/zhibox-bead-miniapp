@@ -1,0 +1,211 @@
+<view class="beads-shell">
+  <view class="stage-nav" wx:if="{{stage !== 'home'}}">
+    <view class="back-button" bindtap="goBack" hover-class="tap-pressed">‹</view>
+    <view><text>{{stage === 'crop' ? '裁切照片' : stage === 'style' ? '选择风格' : stage === 'aiResult' ? '风格转换结果' : stage === 'settings' ? '图纸设置' : stage === 'qr' ? '二维码拼豆' : stage === 'drawSetup' ? '创建空白图纸' : stage === 'draw' ? '自由绘制' : stage === 'pixelSetup' ? '图纸识别' : '拼豆图纸'}}</text><text>SamVibe BEADS</text></view>
+  </view>
+
+  <view class="page beads-home" wx:if="{{stage === 'home'}}">
+    <view class="hero-card">
+      <text class="hero-kicker">PIXEL / BEADS</text>
+      <text class="hero-title">把喜欢的画面\n变成拼豆图纸</text>
+      <text class="hero-copy">风格转换、真实色号匹配、逐格修图与材料统计，一条流程完成。</text>
+      <button class="primary hero-action" bindtap="startPhoto">照片生成图纸 <text>→</text></button>
+      <view class="hero-badge">风格推荐</view>
+    </view>
+
+    <view class="qr-entry" bindtap="startQR" hover-class="entry-pressed">
+      <view><text>二维码拼豆</text><text>输入文字或网址，生成可扫码图纸</text></view><view class="qr-icon">▦</view>
+    </view>
+
+    <view class="coming-grid">
+      <view bindtap="startFreeDraw" hover-class="entry-pressed"><text class="coming-icon">✎</text><text>自由绘制</text><text>空白画布、参考图与区域锁定</text></view>
+      <view bindtap="startPixelImport" hover-class="entry-pressed"><text class="coming-icon">⌗</text><text>导入已有图纸</text><text>框选网格，自动识别品牌色号</text></view>
+    </view>
+
+    <view class="recent-section" wx:if="{{historyItems.length}}">
+      <view class="section-head"><view><text>历史图纸</text><text>不限条数，仅保存在本机</text></view><text bindtap="clearHistory">清空</text></view>
+      <view class="history-grid">
+        <view class="recent-card" wx:for="{{historyItems}}" wx:key="id" data-id="{{item.id}}" bindtap="openHistory" hover-class="entry-pressed">
+          <view class="recent-image-wrap">
+            <image wx:if="{{item.thumbnailPath}}" src="{{item.thumbnailPath}}" mode="aspectFit"></image>
+            <view wx:else class="recent-thumb">{{item.type === 'qr' ? '▦' : item.type === 'ai' ? '风' : '图'}}</view>
+            <text class="recent-type">{{item.typeLabel}}</text>
+          </view>
+          <view class="recent-info"><text class="recent-title">{{item.title || '未命名'}}</text><text class="recent-meta">{{item.width}} × {{item.height}} · {{item.dateLabel}}</text><view class="recent-footer"><text>仅保存在本机</text><text class="recent-menu" data-id="{{item.id}}" catchtap="showHistoryMenu">•••</text></view></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="page stage-page" wx:if="{{stage === 'drawSetup'}}">
+    <view class="setup-intro"><text>创建你的拼豆画布</text><text>先确定行列、品牌与色卡。画布建立后仍可绘制、擦除、填充、取色和锁定区域。</text></view>
+    <view class="setting-card"><view class="setting-title"><text>画布尺寸</text><text>{{drawColumns}} × {{drawRows}}</text></view>
+      <view class="two-fields"><view><text>列数（宽）</text><input type="number" value="{{drawColumns}}" data-key="drawColumns" bindblur="onDrawSize"/></view><view><text>行数（高）</text><input type="number" value="{{drawRows}}" data-key="drawRows" bindblur="onDrawSize"/></view></view>
+      <view class="preset-row"><view class="choice-pill size-pill" data-value="32" bindtap="chooseDrawPreset"><text>迷你</text><text>32 × 32</text></view><view class="choice-pill size-pill" data-value="52" bindtap="chooseDrawPreset"><text>标准小板</text><text>52 × 52</text></view><view class="choice-pill size-pill" data-value="78" bindtap="chooseDrawPreset"><text>中板</text><text>78 × 78</text></view><view class="choice-pill size-pill" data-value="104" bindtap="chooseDrawPreset"><text>超大板</text><text>104 × 104</text></view></view>
+      <text class="hint">支持 8–240 格的长方形画布。超过 160 格属于超大图纸，生成和编辑可能较慢。常见 5mm 拼豆，52 格约为 26 厘米。</text>
+    </view>
+    <view class="setting-card"><view class="setting-title"><text>品牌与色卡</text><text>创建后固定</text></view><view class="two-fields"><view><text>拼豆品牌</text><picker range="{{brands}}" range-key="label" value="{{drawBrandIndex}}" bindchange="onDrawBrand"><view class="dark-picker">{{brands[drawBrandIndex].label}}⌄</view></picker></view><view><text>颜色套餐</text><picker range="{{drawPackageOptions}}" range-key="label" value="{{drawPackageIndex}}" bindchange="onDrawPackage"><view class="dark-picker">{{drawPackageOptions[drawPackageIndex].label}}⌄</view></picker></view></view></view>
+    <view class="setting-card reference-setup"><view class="setting-title"><text>参考图片</text><text>可选</text></view><view class="reference-row"><image wx:if="{{drawReferencePath}}" src="{{drawReferencePath}}" mode="aspectFit"></image><view wx:else>＋</view><view><text>可在网格下方半透明显示参考图</text><button class="secondary" bindtap="chooseDrawReference">{{drawReferencePath ? '更换图片' : '选择图片'}}</button></view></view></view>
+    <button class="primary wide-action" bindtap="createFreeDraw">确认创建画布</button>
+  </view>
+
+  <view class="draw-page" wx:if="{{stage === 'draw'}}">
+    <view class="draw-topbar"><view class="mode-switch"><view class="{{drawMode === 'lock' ? 'active' : ''}}" data-value="lock" bindtap="selectDrawMode">拼豆锁定</view><view class="{{drawMode === 'edit' ? 'active' : ''}}" data-value="edit" bindtap="selectDrawMode">编辑模式</view></view><button class="primary mini-finish" bindtap="finishFreeDraw">完成</button></view>
+    <view class="draw-info"><text>{{drawColumns}} × {{drawRows}} · 已锁定 {{drawLockedCount}} 格</text><text>{{drawHint}}</text></view>
+    <view class="draw-canvas-wrap"><canvas type="2d" id="drawCanvas" class="draw-canvas" bindtouchstart="drawTouchStart" catchtouchmove="drawTouchMove" bindtouchend="drawTouchEnd" bindtouchcancel="drawTouchEnd"></canvas></view>
+    <view class="reference-opacity" wx:if="{{drawReferencePath}}"><text>参考图透明度 {{drawReferenceOpacity}}%</text><slider min="0" max="80" value="{{drawReferenceOpacity}}" activeColor="#e471a0" bindchanging="onDrawReferenceOpacity" bindchange="onDrawReferenceOpacity"/></view>
+    <view class="draw-tools"><view class="{{drawTool === 'paint' && drawMode === 'edit' ? 'active' : ''}}" data-value="paint" bindtap="selectDrawTool">画笔</view><view class="{{drawTool === 'erase' && drawMode === 'edit' ? 'active' : ''}}" data-value="erase" bindtap="selectDrawTool">橡皮</view><view class="{{drawTool === 'fill' && drawMode === 'edit' ? 'active' : ''}}" data-value="fill" bindtap="selectDrawTool">填充</view><view class="{{drawTool === 'picker' && drawMode === 'edit' ? 'active' : ''}}" data-value="picker" bindtap="selectDrawTool">取色</view><view bindtap="undoDraw" class="{{!drawUndoAvailable ? 'disabled' : ''}}">撤销</view><view bindtap="redoDraw" class="{{!drawRedoAvailable ? 'disabled' : ''}}">重做</view></view>
+    <scroll-view class="draw-palette" scroll-x="true" enhanced="true" show-scrollbar="false"><view class="draw-palette-row"><view class="draw-color {{drawSelectedColorIndex === index ? 'active' : ''}}" wx:for="{{drawPaletteColors}}" wx:key="code" data-index="{{index}}" bindtap="selectDrawColor"><view style="background:rgb({{item.r}},{{item.g}},{{item.b}})"></view><text>{{item.code}}</text></view></view></scroll-view>
+  </view>
+
+  <view class="page stage-page" wx:if="{{stage === 'pixelSetup'}}">
+    <view class="chart-intro"><view><text>① 框选 2×2 四个格子</text><text>{{chartHint}}</text></view><button class="secondary" bindtap="resetChartCorners">重新框选</button></view>
+    <view class="chart-mode-row"><view class="{{chartCornerMode === 'rect' ? 'active' : ''}}" data-mode="rect" bindtap="selectChartCornerMode"><text>平面截图</text><text>保持长方形</text></view><view class="{{chartCornerMode === 'free' ? 'active' : ''}}" data-mode="free" bindtap="selectChartCornerMode"><text>斜拍图纸</text><text>四角独立贴合</text></view><text>{{chartZoom}}%</text></view>
+    <view class="chart-canvas-wrap"><canvas type="2d" id="chartCanvas" class="chart-canvas" bindtouchstart="chartTouchStart" catchtouchmove="chartTouchMove" bindtouchend="chartTouchEnd" bindtouchcancel="chartTouchEnd"></canvas></view>
+    <view class="chart-match-card {{chartAutoReady ? 'ready' : ''}}"><view class="chart-match-icon">{{chartAutoReady ? '✓' : '⌗'}}</view><view><text>{{chartMatchText}}</text><text>{{chartMatchDetail}}</text></view><button class="secondary" bindtap="refreshChartMatch">自动匹配</button></view>
+    <view class="setting-card"><view class="setting-title"><text>② 自动匹配结果</text><text>{{chartAutoReady ? chartColumns + ' × ' + chartRows : '等待校准'}}</text></view>
+      <view class="two-fields"><view><text>横向格数（列）</text><input type="number" value="{{chartColumns}}" disabled="{{!chartAutoReady}}" data-key="chartColumns" bindblur="onChartSize" bindconfirm="onChartSize"/></view><view><text>纵向格数（行）</text><input type="number" value="{{chartRows}}" disabled="{{!chartAutoReady}}" data-key="chartRows" bindblur="onChartSize" bindconfirm="onChartSize"/></view></view>
+      <text class="hint">绿色网格会限制在原图可见范围内，边缘包不住的残格可自动裁掉。即使边界判断不完美，也会按图片边缘容错生成，不会阻止使用。</text>
+    </view>
+    <view class="setting-card"><view class="setting-title"><text>品牌与色卡</text><text>精确匹配</text></view><view class="two-fields"><view><text>拼豆品牌</text><picker range="{{brands}}" range-key="label" value="{{pixelBrandIndex}}" bindchange="onPixelBrand"><view class="dark-picker">{{brands[pixelBrandIndex].label}}⌄</view></picker></view><view><text>颜色套餐</text><picker range="{{pixelPackageOptions}}" range-key="label" value="{{pixelPackageIndex}}" bindchange="onPixelPackage"><view class="dark-picker">{{pixelPackageOptions[pixelPackageIndex].label}}⌄</view></picker></view></view></view>
+    <view class="chart-note"><text>框选技巧</text><text>粉色框决定格子大小和方向，请让外沿贴紧四格、中间十字压在公共交点上。程序只扩展图片内的完整格；绿色线逐格重合后再生成。</text></view>
+    <button class="primary wide-action" bindtap="generatePixelPattern" loading="{{pixelBusy}}" disabled="{{pixelBusy || !chartAutoReady}}">识别并生成可编辑图纸</button><view class="status" wx:if="{{pixelStatus}}">{{pixelStatus}}</view>
+  </view>
+
+  <view class="page stage-page" wx:if="{{stage === 'crop'}}">
+    <view class="crop-workspace"><canvas type="2d" id="cropCanvas" class="crop-canvas" bindtouchstart="cropTouchStart" catchtouchmove="cropTouchMove" bindtouchend="cropTouchEnd" bindtouchcancel="cropTouchEnd"></canvas><view class="crop-shade"></view><view class="crop-grid" style="{{cropFrameStyle}}"><view class="crop-handle handle-tl" data-corner="tl" catchtouchstart="cropHandleStart" catchtouchmove="cropHandleMove" catchtouchend="cropHandleEnd" catchtouchcancel="cropHandleEnd"></view><view class="crop-handle handle-tr" data-corner="tr" catchtouchstart="cropHandleStart" catchtouchmove="cropHandleMove" catchtouchend="cropHandleEnd" catchtouchcancel="cropHandleEnd"></view><view class="crop-handle handle-bl" data-corner="bl" catchtouchstart="cropHandleStart" catchtouchmove="cropHandleMove" catchtouchend="cropHandleEnd" catchtouchcancel="cropHandleEnd"></view><view class="crop-handle handle-br" data-corner="br" catchtouchstart="cropHandleStart" catchtouchmove="cropHandleMove" catchtouchend="cropHandleEnd" catchtouchcancel="cropHandleEnd"></view><text>{{cropFrameRatioText}}</text></view></view>
+    <text class="stage-title">调整照片范围</text><text class="stage-copy">拖动白框四角调整裁切范围；单指移动照片，双指缩放照片。固定比例会自动保持形状，选择“自由”可任意改变宽高。</text>
+    <view class="ratio-row"><view class="choice-pill {{cropRatio === item.value ? 'active' : ''}}" wx:for="{{cropRatios}}" wx:key="value" data-value="{{item.value}}" bindtap="selectCropRatio">{{item.label}}</view></view>
+    <view class="crop-controls">
+      <view><text>照片缩放</text><text>{{cropZoom}}%</text></view><slider min="100" max="500" step="1" value="{{cropZoom}}" activeColor="#8dddc9" backgroundColor="#eee9f6" block-color="#ff9abb" bindchanging="onCropZoom" bindchange="onCropZoom"/>
+    </view>
+    <view class="button-row"><button class="ghost" bindtap="rotatePhoto" loading="{{cropBusy}}">旋转 90°</button><button class="primary" bindtap="confirmCrop" loading="{{cropBusy}}">下一步</button></view>
+  </view>
+
+  <view class="page stage-page" wx:if="{{stage === 'style'}}">
+    <view class="style-source"><image src="{{originalPath}}" mode="aspectFit"></image><text>原图</text></view>
+    <view class="field-card"><text class="field-title">自定义要求</text><textarea maxlength="100" value="{{customRequest}}" bindinput="onCustomRequest" placeholder="选填，例如：保留眼镜、衣服改成红色、背景更简洁"/><text>{{customRequest.length}} / 100</text></view>
+    <view class="section-head plain"><view><text>选择风格</text><text>通用原创风格，不模仿特定品牌或艺术家</text></view><text>{{aiStyles.length}} 款</text></view>
+    <view class="style-grid">
+      <view class="style-card {{styleIndex === index ? 'active' : ''}}" wx:for="{{aiStyles}}" wx:key="value" data-index="{{index}}" bindtap="selectStyle">
+        <view class="style-thumb"><image wx:if="{{item.value === 'original'}}" src="{{originalPath}}" mode="aspectFill"></image><image wx:else class="style-sheet sheet-{{item.sheet}}" src="/assets/beads/ai-style-sheet.jpg" mode="scaleToFill"></image></view>
+        <text class="style-label">{{item.label}}</text><text class="style-check" wx:if="{{styleIndex === index}}">✓</text>
+      </view>
+    </view>
+    <view class="composition-card people-count-card" wx:if="{{aiStyles[styleIndex].people}}">
+      <view class="composition-head"><text>人物数量</text><text>请按原图实际人数选择</text></view>
+      <view class="people-count-switch">
+        <view class="composition-option {{peopleCountMode === item.value ? 'active' : ''}}" wx:for="{{peopleCountOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="selectPeopleCount"><text>{{item.label}}</text><text>{{item.detail}}</text><text wx:if="{{peopleCountMode === item.value}}">✓</text></view>
+      </view>
+      <text class="hint" wx:if="{{peopleCountMode === 'multiple'}}">多人图建议使用 78 × 78 中板或更大尺寸，确保每张脸的眼睛、鼻子和嘴巴都能清楚拼出。</text>
+    </view>
+    <view class="composition-card hair-mode-card" wx:if="{{aiStyles[styleIndex].people}}">
+      <view class="composition-head"><text>发型处理</text><text>默认锁定原发型</text></view>
+      <view class="composition-switch">
+        <view class="composition-option {{hairMode === item.value ? 'active' : ''}}" wx:for="{{hairModeOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="selectHairMode"><text>{{item.label}}</text><text>{{item.detail}}</text><text wx:if="{{hairMode === item.value}}">✓</text></view>
+      </view>
+      <text class="hint">严格保留会锁定每个人的发长、直卷、刘海、分缝、扎发方式与发饰，只把发丝简化成适合卡通和拼豆的清楚发束。</text>
+    </view>
+    <view class="composition-card">
+      <view class="composition-head"><text>背景处理</text><text>{{aiStyles[styleIndex].value === 'original' ? '使用原图默认不抠图' : '按成品用途选择'}}</text></view>
+      <view class="composition-switch">
+        <view class="composition-option {{compositionMode === item.value ? 'active' : ''}}" wx:for="{{compositionOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="selectComposition"><text>{{item.label}}</text><text>{{item.detail}}</text><text wx:if="{{compositionMode === item.value}}">✓</text></view>
+      </view>
+      <text class="hint" wx:if="{{compositionMode === 'scene'}}">完整保留裁切框内的主体和背景，不会自动删除白色、天空、树木、地面或其他边缘场景。</text>
+      <text class="hint" wx:else>只保留人物、宠物或主要物体，适合制作独立挂件；浅色主体会继续作为实体拼豆保留。</text>
+    </view>
+    <view class="consent dark-consent" wx:if="{{aiStyles[styleIndex].value !== 'original'}}" bindtap="toggleUploadConsent" hover-class="consent-pressed" aria-role="checkbox" aria-checked="{{uploadConsent}}"><view class="check-box {{uploadConsent ? 'checked' : ''}}"><text wx:if="{{uploadConsent}}">✓</text></view><text>我同意照片临时上传到微信云开发并发送给腾讯混元生成图片；任务完成后自动删除。请确认你有权处理该照片。</text></view>
+    <button wx:if="{{!aiBusy}}" class="primary wide-action" bindtap="continueStyle">{{aiStyles[styleIndex].value === 'original' ? '使用原图继续' : '立即生成'}}</button>
+    <view wx:else class="ai-progress-card"><view class="ai-progress-track"><view style="width:{{aiProgress}}%"></view></view><view><text>{{aiElapsedText}}</text><text>{{aiProgress}}%</text></view><text>生成过程中请保持小程序在前台，完成后会自动进入结果页。</text></view>
+    <view class="status {{aiStatusType}}" wx:if="{{aiStatus}}">{{aiStatus}}</view>
+    <text class="ai-label" wx:if="{{aiStyles[styleIndex].value !== 'original'}}">将按所选风格转换图片</text>
+    <view class="ai-lock" wx:if="{{aiBusy}}"><view class="ai-lock-panel"><view class="ai-spinner"></view><text>正在转换风格图</text><text>{{aiProgress}}% · {{aiElapsedText}}</text><text>暂时不能切换风格或返回，请稍候</text></view></view>
+  </view>
+
+  <view class="page stage-page" wx:if="{{stage === 'aiResult'}}">
+    <view class="compare-grid"><view><text>原图</text><image src="{{originalPath}}" mode="aspectFit"></image></view><view><text>风格效果</text><image src="{{generatedPath}}" mode="aspectFit"></image></view></view>
+    <view class="success-panel"><text>转换成功</text><text>满意当前风格效果吗？喜欢后进入尺寸和色号设置。</text></view>
+    <view class="button-row"><button class="ghost" bindtap="regenerateAI" loading="{{aiBusy}}">换一个</button><button class="primary" bindtap="acceptAI">喜欢，继续</button></view>
+    <button class="text-button" bindtap="useOriginal">直接使用原图</button>
+  </view>
+
+  <view class="page stage-page" wx:if="{{stage === 'settings'}}">
+    <view class="color-preview-card">
+      <view class="color-preview-head"><view><text>拼豆效果预览</text><text>调色、用色数量、尺寸和色卡会同步更新</text></view><text>{{settingsPreviewBusy ? '生成中…' : (colorPresetIndex >= 0 ? colorPresets[colorPresetIndex].label : '自定义')}} · {{colorUsageMode === 'rich' ? '丰富颜色' : '智能复用'}}</text></view>
+      <view class="color-preview-frame"><image wx:if="{{settingsPreviewPath}}" src="{{settingsPreviewPath}}" mode="aspectFit"></image><view class="preview-loading" wx:else><text>{{settingsPreviewBusy ? '正在生成拼豆预览…' : '调整参数后生成预览'}}</text></view></view>
+      <view class="color-preview-meta"><text>{{resultWidth}} × {{resultHeight}}</text><text wx:if="{{settingsPreviewPath}}">约 {{settingsPreviewTotal}} 颗 · {{settingsPreviewColors}} 色</text></view>
+      <text class="hint qr-structure-hint" wx:if="{{settingsPreviewQrInfo}}">{{settingsPreviewQrInfo}}；已跳过照片缩放、包边和杂色处理。</text>
+    </view>
+
+    <view class="setting-card color-preset-card"><view class="setting-title"><text>调色风格</text><text>生成图纸前选择</text></view>
+      <view class="color-preset-grid"><view class="color-preset {{colorPresetIndex === index ? 'active' : ''}}" wx:for="{{colorPresets}}" wx:key="value" data-index="{{index}}" bindtap="selectColorPreset"><view class="preset-swatch preset-{{item.value}}"></view><text>{{item.label}}</text><text>{{item.detail}}</text></view></view>
+      <text class="hint">选择预设会同步调整下方亮度、对比度和饱和度；手动拖动滑杆后显示为“自定义”。</text>
+    </view>
+
+    <view class="setting-card"><view class="setting-title"><text>用色数量</text><text>{{colorUsageMode === 'compact' ? '默认推荐' : '色号较多'}}</text></view>
+      <view class="composition-switch"><view class="composition-option {{colorUsageMode === item.value ? 'active' : ''}}" wx:for="{{colorUsageOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="selectColorUsage"><text>{{item.label}}</text><text>{{item.detail}}</text><text wx:if="{{colorUsageMode === item.value}}">✓</text></view></view>
+      <text class="hint" wx:if="{{colorUsageMode === 'compact'}}">先按完整色卡识别区域，再从整张图全局选择一组主色：52 格插画通常不超过 12 色，照片通常不超过 16 色；必要黑色结构、白色高光和不同主色系仍会保留。二维码与硬边双色图会自动固定为两种材料色。</text>
+      <text class="hint color-warning" wx:else>从完整 221 色卡保留更多真实区域、高光、点缀和必要明暗；同一连续色块会稳定为主色，并按图纸尺寸控制材料数量：32/52/78/104 格最多约 16/20/28/36 色。</text>
+    </view>
+
+    <view class="setting-card"><view class="setting-title"><text>图纸尺寸</text><text>参考板型 {{longSide}} × {{longSide}}</text></view>
+      <view class="preset-row"><view class="choice-pill size-pill {{longSide === item.value ? 'active' : ''}}" wx:for="{{sizePresets}}" wx:key="value" data-value="{{item.value}}" bindtap="selectSize"><text>{{item.label}}</text><text>{{item.detail}}</text></view></view>
+      <view class="size-adjust-row"><slider min="16" max="240" step="1" value="{{longSide}}" activeColor="#ff8eb5" backgroundColor="#eee9f6" block-color="#8dddc9" bindchange="onSizeChange"/><view class="size-manual-input"><input type="number" value="{{longSide}}" confirm-type="done" bindconfirm="onSizeInput" bindblur="onSizeInput"/><text>格</text></view></view>
+      <text class="hint">按常见 5mm 拼豆估算：当前成品 {{physicalSizeText}}。长边越大，五官和轮廓越清晰；超过 160 格生成和编辑可能较慢。</text>
+    </view>
+
+    <view class="setting-card"><view class="setting-title"><text>品牌与色卡</text><text>{{brands[brandIndex].verified ? '标准参考' : '社区参考'}}</text></view>
+      <view class="two-fields"><view><text>拼豆品牌</text><picker range="{{brands}}" range-key="label" value="{{brandIndex}}" bindchange="onBrandChange"><view class="dark-picker">{{brands[brandIndex].label}}⌄</view></picker></view><view><text>色卡套餐</text><picker range="{{packageOptions}}" range-key="label" value="{{packageIndex}}" bindchange="onPackageChange"><view class="dark-picker">{{packageOptions[packageIndex].label}}⌄</view></picker></view></view>
+      <text class="hint">{{brands[brandIndex].note}}。屏幕 RGB 仅用于近似匹配，实体批次可能存在色差。</text>
+    </view>
+
+    <view class="setting-card"><view class="setting-title"><text>取色与图像优化</text><text>{{fitOptions[fitIndex].label}}</text></view>
+      <view class="two-fields"><view><text>取色倾向</text><picker range="{{fitOptions}}" range-key="label" value="{{fitIndex}}" bindchange="onFit"><view class="dark-picker">{{fitOptions[fitIndex].label}}⌄</view></picker></view><view><text>降噪</text><picker range="{{denoiseOptions}}" range-key="label" value="{{denoiseIndex}}" bindchange="onDenoise"><view class="dark-picker">{{denoiseOptions[denoiseIndex].label}}⌄</view></picker></view></view>
+      <view class="slider-field"><text>亮度 · {{brightness}}%</text><slider min="60" max="140" value="{{brightness}}" data-key="brightness" activeColor="#63dfcc" bindchange="onSlider"/></view>
+      <view class="slider-field"><text>对比度 · {{contrast}}%</text><slider min="60" max="150" value="{{contrast}}" data-key="contrast" activeColor="#63dfcc" bindchange="onSlider"/></view>
+      <view class="slider-field"><text>饱和度 · {{saturation}}%</text><slider min="0" max="160" value="{{saturation}}" data-key="saturation" activeColor="#63dfcc" bindchange="onSlider"/></view>
+      <view class="switch-row" data-key="removeNoise" bindtap="toggleSetting"><view><text>去杂色</text><text>清理孤立的小色块</text></view><view class="mini-switch {{removeNoise ? 'on' : ''}}"><view></view></view></view>
+      <view class="switch-row" data-key="smoothEdges" bindtap="toggleSetting"><view><text>平滑边缘</text><text>填补边缘的小缺口</text></view><view class="mini-switch {{smoothEdges ? 'on' : ''}}"><view></view></view></view>
+      <view class="switch-row scene-mode-note" wx:if="{{compositionMode === 'scene'}}"><view><text>完整画面模式</text><text>已关闭所有自动抠图与边缘背景清理，裁切框内整张图都会生成</text></view></view>
+      <view class="switch-row" wx:if="{{compositionMode === 'subject'}}" data-key="localBackground" bindtap="toggleSetting"><view><text>自动清理纯色背景</text><text>只移除与画面边缘相连的近似背景，减少大片白豆</text></view><view class="mini-switch {{localBackground ? 'on' : ''}}"><view></view></view></view>
+      <view class="switch-row" data-key="gridBold" bindtap="toggleSetting"><view><text>粗网格</text><text>导出后更容易数格</text></view><view class="mini-switch {{gridBold ? 'on' : ''}}"><view></view></view></view>
+      <view class="switch-row" wx:if="{{compositionMode === 'subject'}}" data-key="removeBackground" bindtap="toggleSetting"><view><text>智能去背景</text><text>使用 remove.bg 临时处理主体</text></view><view class="mini-switch {{removeBackground ? 'on' : ''}}"><view></view></view></view>
+      <view class="consent dark-consent" wx:if="{{compositionMode === 'subject' && removeBackground}}" data-key="cutoutConsent" bindtap="toggleSetting" aria-role="checkbox" aria-checked="{{cutoutConsent}}"><view class="check-box {{cutoutConsent ? 'checked' : ''}}"><text wx:if="{{cutoutConsent}}">✓</text></view><text>我同意图片临时上传到微信云开发并发送给 remove.bg 自动抠图，完成后立即删除。</text></view>
+    </view>
+    <button class="primary wide-action" bindtap="generatePattern" loading="{{busy}}" disabled="{{busy || settingsPreviewBusy}}">{{settingsPreviewBusy ? '正在更新完整预览…' : '生成拼豆图纸'}}</button>
+    <view class="progress" wx:if="{{busy}}"><view class="progress-bar" style="width:{{progress}}%"></view></view><view class="status {{statusType}}" wx:if="{{status}}">{{status}}</view>
+  </view>
+
+  <view class="page stage-page editor-page" wx:if="{{stage === 'editor'}}">
+    <view class="editor-summary"><view><text>图纸效果</text><text>{{resultWidth}} × {{resultHeight}}</text></view><text>{{totalBeads}} 颗 · {{materials.length}} 色</text></view>
+    <view class="pattern-name-display" wx:if="{{projectType === 'qr' && patternName}}">{{patternName}}</view>
+    <view class="pattern-zoom-head"><view><text>{{patternEditLocked ? '已锁定修改 · 可放心缩放拖动' : '已解锁 · 轻点格子可以修改'}}</text><text>拖动或双指缩放后会自动拦截误触</text></view><view class="pattern-head-actions"><view bindtap="resetPatternView">{{patternZoom}}% · 复位</view><view class="pattern-lock {{patternEditLocked ? 'locked' : 'unlocked'}}" bindtap="togglePatternEditLock">{{patternEditLocked ? '🔒 修改已锁定' : '🔓 锁定修改'}}</view></view></view>
+    <movable-area class="pattern-scroll" scale-area="true"><movable-view wx:if="{{patternViewReady}}" class="pattern-movable" direction="all" out-of-bounds="true" damping="35" friction="2" animation="false" scale="true" scale-min="0.7" scale-max="8" scale-value="{{patternScale}}" x="{{patternMoveX}}" y="{{patternMoveY}}" bindscale="onPatternScale" bindchange="onPatternMove" bindtouchstart="patternTouchStart" bindtouchmove="patternTouchMove" bindtouchend="patternTouchEnd" bindtouchcancel="patternTouchEnd"><image id="patternImage" class="pattern-image" src="{{previewPath}}" mode="aspectFit" bindtap="editCell"></image></movable-view></movable-area>
+
+    <view class="editor-toolbar"><view class="tool-chip {{editTool === item.value ? 'active' : ''}}" wx:for="{{editTools}}" wx:key="value" data-value="{{item.value}}" bindtap="selectEditTool">{{item.label}}</view><view class="tool-chip" bindtap="undo" aria-disabled="{{!undoAvailable}}">撤销</view><view class="tool-chip" bindtap="redo" aria-disabled="{{!redoAvailable}}">重做</view></view>
+    <view class="color-button" bindtap="togglePalette"><view style="background:rgb({{paletteColors[selectedColorIndex].r}},{{paletteColors[selectedColorIndex].g}},{{paletteColors[selectedColorIndex].b}})"></view><text>当前颜色 {{paletteColors[selectedColorIndex].code}}</text><text>{{paletteOpen ? '收起' : '换颜色'}}</text></view>
+    <scroll-view class="palette-panel" scroll-y="true" wx:if="{{paletteOpen}}"><view class="palette-grid"><view class="palette-cell {{selectedColorIndex === index ? 'active' : ''}}" wx:for="{{paletteColors}}" wx:key="code" data-index="{{index}}" bindtap="selectPaintColor"><view style="background:rgb({{item.r}},{{item.g}},{{item.b}})"></view><text>{{item.code}}</text></view></view></scroll-view>
+
+    <view class="setting-card compact"><view class="setting-title"><text>批量替换色号</text><text>材料数量会自动更新</text></view><view class="two-fields"><view><text>被替换</text><picker range="{{materials}}" range-key="code" value="{{replaceFromIndex}}" data-key="replaceFromIndex" bindchange="onReplacePicker"><view class="dark-picker">{{materials[replaceFromIndex].code}}⌄</view></picker></view><view><text>替换为</text><picker range="{{paletteColors}}" range-key="code" value="{{replaceToIndex}}" data-key="replaceToIndex" bindchange="onReplacePicker"><view class="dark-picker">{{paletteColors[replaceToIndex].code}}⌄</view></picker></view></view><button class="secondary" bindtap="replaceAll">全部替换</button></view>
+
+    <view class="materials-panel"><view class="section-head plain"><view><text>颜色与数量</text><text>材料色号与所需数量</text></view><text>{{materials.length}} 色</text></view>
+      <view class="material-card" wx:for="{{materials}}" wx:key="code"><view style="background:rgb({{item.r}},{{item.g}},{{item.b}})"></view><view><text>{{item.code}}</text><text>RGB {{item.r}} / {{item.g}} / {{item.b}}</text></view><text>× {{item.count}}</text></view>
+    </view>
+    <view class="export-bar">
+      <button class="primary export-main" bindtap="savePng" loading="{{exportBusy}}">保存高清图片</button>
+      <button class="secondary export-pdf" bindtap="savePdf" disabled="{{exportBusy}}">导出 PDF</button>
+      <button class="secondary export-csv" bindtap="saveCsv" disabled="{{exportBusy}}">导出 CSV 材料表</button>
+    </view>
+    <view class="status {{statusType}}" wx:if="{{status}}">{{status}}</view><button class="text-button" bindtap="goHome">返回拼豆首页</button>
+  </view>
+
+  <view class="page stage-page" wx:if="{{stage === 'qr'}}">
+    <view class="qr-card"><text class="field-title">二维码内容</text><textarea maxlength="500" value="{{qrContent}}" bindinput="onQRContent" placeholder="请输入文字或网址，例如：https://samvibe.top"/><text>{{qrContent.length}} / 500</text></view>
+    <view class="qr-card pattern-name-card"><view class="optional-field-title"><text class="field-title">图纸名称</text><text>可选</text></view><input maxlength="60" value="{{patternName}}" bindinput="onPatternName" placeholder="例如：客厅 Wi-Fi、店铺收款码"/><text>{{patternName.length}} / 60</text><text class="hint">名称只显示在导出图纸外围，不会写入二维码，也不会影响扫码。</text></view>
+    <view class="setting-card"><view class="setting-title"><text>选择色号</text><text>系统会检查对比度</text></view><view class="two-fields"><view><text>前景豆色</text><picker range="{{paletteColors}}" range-key="code" value="{{qrForegroundIndex}}" data-key="qrForegroundIndex" bindchange="onQRColor"><view class="dark-picker color-picker"><view style="background:rgb({{paletteColors[qrForegroundIndex].r}},{{paletteColors[qrForegroundIndex].g}},{{paletteColors[qrForegroundIndex].b}})"></view>{{paletteColors[qrForegroundIndex].code}}</view></picker></view><view><text>背景豆色</text><picker range="{{paletteColors}}" range-key="code" value="{{qrBackgroundIndex}}" data-key="qrBackgroundIndex" bindchange="onQRColor"><view class="dark-picker color-picker"><view style="background:rgb({{paletteColors[qrBackgroundIndex].r}},{{paletteColors[qrBackgroundIndex].g}},{{paletteColors[qrBackgroundIndex].b}})"></view>{{paletteColors[qrBackgroundIndex].code}}</view></picker></view></view></view>
+    <view class="setting-card"><view class="setting-title"><text>图纸大小</text><text>放大越多，用豆越多</text></view><picker range="{{qrSizeOptions}}" value="{{qrSizeIndex}}" bindchange="onQRSize"><view class="dark-picker">{{qrSizeOptions[qrSizeIndex]}}⌄</view></picker><text class="hint">采用高级纠错，并自动保留四周 4 格安全区；为保证扫码，不进行风格化处理。</text></view>
+    <button class="primary wide-action" bindtap="generateQR">生成二维码拼豆图纸</button><view class="status error" wx:if="{{qrStatus}}">{{qrStatus}}</view>
+  </view>
+
+  <canvas type="2d" id="sampleCanvas" class="work-canvas"></canvas><canvas type="2d" id="settingsPreviewCanvas" class="work-canvas"></canvas><canvas type="2d" id="exportCanvas" class="work-canvas"></canvas>
+</view>
